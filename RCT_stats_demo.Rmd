@@ -37,7 +37,7 @@ powerA90 = power.prop.test(power=0.9,p1=0.70,p2=0.73)
 powerA90
 ```
 
-We would need a sample of `r round(powerA90$n, 0)` in each group.
+For 90% power, we would need a sample of `r round(powerA90$n, 0)` in each group.
 
 ## Running the experiment
 
@@ -47,7 +47,6 @@ You run the experiment with `r n` people in each group. We won't do that here, b
 
 ```{r}
 set.seed(11020825)
-outcomes = c(0,1)
 control = rbinom(n, 1, 0.7)
 nC = sum(control)
 nCprop = nC/n

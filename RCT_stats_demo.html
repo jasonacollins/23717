@@ -465,7 +465,7 @@ powerA90</code></pre>
 ##     alternative = two.sided
 ## 
 ## NOTE: n is number in *each* group</code></pre>
-<p>We would need a sample of 4756 in each group.</p>
+<p>For 90% power, we would need a sample of 4756 in each group.</p>
 </div>
 </div>
 <div id="running-the-experiment" class="section level2">
@@ -473,7 +473,6 @@ powerA90</code></pre>
 <p>The only parameter from your power analysis that we now take into the experiment is the sample size.</p>
 <p>You run the experiment with 3553 people in each group. We won’t do that here, but instead we’re going to generate some random data based on an actual effect size of two percentage points.</p>
 <pre class="r"><code>set.seed(11020825)
-outcomes = c(0,1)
 control = rbinom(n, 1, 0.7)
 nC = sum(control)
 nCprop = nC/n
