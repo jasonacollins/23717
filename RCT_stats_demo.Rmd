@@ -16,14 +16,14 @@ Suppose you are testing whether a reminder leads to an increase in tax returns b
 
 ### Power analysis
 
-Before running the experiment you do a power analysis to determine what sample size is required to achieve your requisite level of power. To calculate power, you need an estimated effect size. You review the literature on the topic and decide that a conservative estimate of the effect you are likely to achieve is 2 percentage points.
+Before running the experiment you do a power analysis to determine what sample size is required to achieve your requisite level of power. To calculate power, you need an estimated effect size. You review the literature on the topic and decide that a conservative estimate of the effect you are likely to achieve is 3 percentage points.
 
 You also need to know the variation in the population (i.e. a measure of the variance or standard deviation). For a test of proportions, that standard deviation can be calculated using the estimated proportion of those who will pay on time. We understand that around 70% of taxpayers pay on time.
 
 We want to determine what sample size will give us power of 0.8 with a significance level of 0.05. In R, the following formula gives us that answer. `p1` and `p2` effectively define the estimated base level of compliance and the predicted effect size. `n` as output below is the required sample size.
 
 ```{r}
-powerA = power.prop.test(power=0.8,p1=0.70,p2=0.72)
+powerA = power.prop.test(power=0.8,p1=0.70,p2=0.73)
 n = round (powerA$n, 0)
 powerA
 ```
@@ -33,17 +33,36 @@ You can see that the required sample size is `r n` people in each group to deliv
 Let's suppose we were wanted 90% power. How much larger would we need our effect size to be?
 
 ```{r}
-powerA90 = power.prop.test(power=0.9,p1=0.70,p2=0.72)
+powerA90 = power.prop.test(power=0.9,p1=0.70,p2=0.73)
 powerA90
 ```
 
 We would need a sample of `r round(powerA90$n, 0)` in each group.
 
-### Analysing your data
+## Running the experiment
 
 The only parameter from your power analysis that we now take into the experiment is the sample size.
 
-Let us suppose you have now run the experiment with `r n` people in each group. You find that in the control group 5656 people pay on time (70%), whereas 5898 paid on time in the intervention group (73%). The mechanics of determining whether this is a significant result requires that we:
+You run the experiment with `r n` people in each group. We won't do that here, but instead we're going to generate some random data based on an actual effect size of two percentage points.
+
+```{r}
+set.seed(11020825)
+outcomes = c(0,1)
+control = rbinom(n, 1, 0.7)
+nC = sum(control)
+nCprop = nC/n
+treatment = rbinom(n, 1, 0.72)
+nT = sum(treatment)
+nTprop = nT/n
+nC
+nT
+```
+
+In this experiment, `r nC` of our treatment group (`r round(100*nCprop, 2)`%) and `r nT` of our treatment group (`r round(100*nTprop, 2)`%) pay their tax on time. This is an estimated effect size of `r round(100*(nTprop-nCprop), 2)`%. [Looks like through random chance we got a very low effect size from our experiment relative to what we set it to be.]
+
+### Analysing your data
+
+The mechanics of determining whether this is a significant result requires that we:
 
 -   Calculate the z-score
 -   Obtain the critical value
@@ -53,9 +72,7 @@ Let us suppose you have now run the experiment with `r n` people in each group. 
 First, we first calculate the z-score.
 
 ```{r}
-x_1 = 5898/n
-x_0 = 5656/n
-zA = (x_1-x_0)/sqrt(x_1*(1-x_1)/n+x_0*(1-x_0)/n) 
+zA = (nTprop-nCprop)/sqrt(nTprop*(1-nTprop)/n+nCprop*(1-nCprop)/n) 
 zA                      # test statistic 
 ```
 The z-score is `r zA`
@@ -69,23 +86,31 @@ zA.half.alpha
 ```
 The critical value is 1.96.
 
-Our z-score is greater than the critical value, so we reject the null hypothesis that there is no effect of the prompt.
+Our z-score is less than the critical value, so we do not reject the null hypothesis that there is no effect of the prompt.
 
 ```{r}
 pval = 2*pnorm(zA, lower.tail=FALSE)
 pval
 ```
-The low p-value of `r pval` confirms this decision to reject.
+The p-value of `r round(pval, 3)` is above 0.05, which confirms this decision to not reject the null.
 
 This can all be done for you by a single formula in R.
 
 ```{r}
-ztestA <- prop.test(x = c(5656, 5898), n = c(n, n), alternative = "two.sided", correct=FALSE)
+ztestA <- prop.test(x = c(nC, nT), n = c(n, n), alternative = "two.sided", correct=FALSE)
 ztestA
-sqrt(ztestA$statistic)
 ```
 
-The X-squared test noted in the results here is a test of proportions that is equivalent to the z-test. You might also note that the numbers aren't identical to what we manually calculated. There are many permutations of most statistical tests, and one of those is likely driving that mild difference. I haven't taken the time to dig into the prop.test formula to understand exactly what is driving the difference here.
+The X-squared test noted in the results here is a test of proportions that is equivalent to the z-test.
+
+Of note, here we have failed to reject the null despite the null being false. Given the effect size was less than predicted, the experiment was underpowered. In fact, the power of the experiment given the true effect size was as follows:
+
+```{r}
+powerTrue = power.prop.test(n=n,p1=0.70,p2=0.72)
+powerTrue
+```
+
+The power was only `r round(100*powerTrue$power, 0)`%. 
 
 ## Scenario B: A comparison of means
 
@@ -110,7 +135,7 @@ You can see that the required sample size is `r nB` people in each group to deli
 
 The only parameter from your power analysis that we now take into the experiment is the sample size.
 
-Let us suppose you have now run the experiment with `r nB` people in each group. You find that in the control group the average income declared is \$40,000, whereas the average income declared in the intervention group is \$40,750. The sample standard deviation in both groups was \$60,000. We now proceed to:
+Let us suppose you have now run the experiment with `r nB` people in each group. We won't simulate the data here, but will assume you find that in the control group the average income declared is \$40,000, whereas the average income declared in the intervention group is \$40,750. The sample standard deviation in both groups was \$60,000. We now proceed to:
 
 -   Calculate the z-score
 -   Obtain the critical value

@@ -433,44 +433,61 @@ summary {
 <p>Suppose you are testing whether a reminder leads to an increase in tax returns being submitted on time. You design a randomised controlled trial where a treatment group receives a reminder, and a control group receives nothing. This is a binary outcome: people either pay their tax on time or they don’t.</p>
 <div id="power-analysis" class="section level3">
 <h3>Power analysis</h3>
-<p>Before running the experiment you do a power analysis to determine what sample size is required to achieve your requisite level of power. To calculate power, you need an estimated effect size. You review the literature on the topic and decide that a conservative estimate of the effect you are likely to achieve is 2 percentage points.</p>
+<p>Before running the experiment you do a power analysis to determine what sample size is required to achieve your requisite level of power. To calculate power, you need an estimated effect size. You review the literature on the topic and decide that a conservative estimate of the effect you are likely to achieve is 3 percentage points.</p>
 <p>You also need to know the variation in the population (i.e. a measure of the variance or standard deviation). For a test of proportions, that standard deviation can be calculated using the estimated proportion of those who will pay on time. We understand that around 70% of taxpayers pay on time.</p>
 <p>We want to determine what sample size will give us power of 0.8 with a significance level of 0.05. In R, the following formula gives us that answer. <code>p1</code> and <code>p2</code> effectively define the estimated base level of compliance and the predicted effect size. <code>n</code> as output below is the required sample size.</p>
-<pre class="r"><code>powerA = power.prop.test(power=0.8,p1=0.70,p2=0.72)
+<pre class="r"><code>powerA = power.prop.test(power=0.8,p1=0.70,p2=0.73)
 n = round (powerA$n, 0)
 powerA</code></pre>
 <pre><code>## 
 ##      Two-sample comparison of proportions power calculation 
 ## 
-##               n = 8079.243
+##               n = 3553.055
 ##              p1 = 0.7
-##              p2 = 0.72
+##              p2 = 0.73
 ##       sig.level = 0.05
 ##           power = 0.8
 ##     alternative = two.sided
 ## 
 ## NOTE: n is number in *each* group</code></pre>
-<p>You can see that the required sample size is 8079 people in each group to deliver 80% power, assuming our estimates of the proportion that will pay on time and the effect size are accurate.</p>
+<p>You can see that the required sample size is 3553 people in each group to deliver 80% power, assuming our estimates of the proportion that will pay on time and the effect size are accurate.</p>
 <p>Let’s suppose we were wanted 90% power. How much larger would we need our effect size to be?</p>
-<pre class="r"><code>powerA90 = power.prop.test(power=0.9,p1=0.70,p2=0.72)
+<pre class="r"><code>powerA90 = power.prop.test(power=0.9,p1=0.70,p2=0.73)
 powerA90</code></pre>
 <pre><code>## 
 ##      Two-sample comparison of proportions power calculation 
 ## 
-##               n = 10815.31
+##               n = 4756.034
 ##              p1 = 0.7
-##              p2 = 0.72
+##              p2 = 0.73
 ##       sig.level = 0.05
 ##           power = 0.9
 ##     alternative = two.sided
 ## 
 ## NOTE: n is number in *each* group</code></pre>
-<p>We would need a sample of 10815 in each group.</p>
+<p>We would need a sample of 4756 in each group.</p>
 </div>
+</div>
+<div id="running-the-experiment" class="section level2">
+<h2>Running the experiment</h2>
+<p>The only parameter from your power analysis that we now take into the experiment is the sample size.</p>
+<p>You run the experiment with 3553 people in each group. We won’t do that here, but instead we’re going to generate some random data based on an actual effect size of two percentage points.</p>
+<pre class="r"><code>set.seed(11020825)
+outcomes = c(0,1)
+control = rbinom(n, 1, 0.7)
+nC = sum(control)
+nCprop = nC/n
+treatment = rbinom(n, 1, 0.72)
+nT = sum(treatment)
+nTprop = nT/n
+nC</code></pre>
+<pre><code>## [1] 2479</code></pre>
+<pre class="r"><code>nT</code></pre>
+<pre><code>## [1] 2489</code></pre>
+<p>In this experiment, 2479 of our treatment group (69.77%) and 2489 of our treatment group (70.05%) pay their tax on time. This is an estimated effect size of 0.28%. [Looks like through random chance we got a very low effect size from our experiment relative to what we set it to be.]</p>
 <div id="analysing-your-data" class="section level3">
 <h3>Analysing your data</h3>
-<p>The only parameter from your power analysis that we now take into the experiment is the sample size.</p>
-<p>Let us suppose you have now run the experiment with 8079 people in each group. You find that in the control group 5656 people pay on time (70%), whereas 5898 paid on time in the intervention group (73%). The mechanics of determining whether this is a significant result requires that we:</p>
+<p>The mechanics of determining whether this is a significant result requires that we:</p>
 <ul>
 <li>Calculate the z-score</li>
 <li>Obtain the critical value</li>
@@ -478,42 +495,52 @@ powerA90</code></pre>
 <li>Derive the p-value</li>
 </ul>
 <p>First, we first calculate the z-score.</p>
-<pre class="r"><code>x_1 = 5898/n
-x_0 = 5656/n
-zA = (x_1-x_0)/sqrt(x_1*(1-x_1)/n+x_0*(1-x_0)/n) 
+<pre class="r"><code>zA = (nTprop-nCprop)/sqrt(nTprop*(1-nTprop)/n+nCprop*(1-nCprop)/n) 
 zA                      # test statistic </code></pre>
-<pre><code>## [1] 4.22002</code></pre>
-<p>The z-score is 4.2200202</p>
+<pre><code>## [1] 0.2586545</code></pre>
+<p>The z-score is 0.2586545</p>
 <p>We need to compare the z score to the critical value, which we can derive from the normal distribution using our chosen significance level of 0.05.</p>
 <pre class="r"><code>alpha = .05
 zA.half.alpha = qnorm(1-alpha/2)
 zA.half.alpha</code></pre>
 <pre><code>## [1] 1.959964</code></pre>
 <p>The critical value is 1.96.</p>
-<p>Our z-score is greater than the critical value, so we reject the null hypothesis that there is no effect of the prompt.</p>
+<p>Our z-score is less than the critical value, so we do not reject the null hypothesis that there is no effect of the prompt.</p>
 <pre class="r"><code>pval = 2*pnorm(zA, lower.tail=FALSE)
 pval</code></pre>
-<pre><code>## [1] 0.00002442805</code></pre>
-<p>The low p-value of 0.0000244 confirms this decision to reject.</p>
+<pre><code>## [1] 0.7959018</code></pre>
+<p>The p-value of 0.796 is above 0.05, which confirms this decision to not reject the null.</p>
 <p>This can all be done for you by a single formula in R.</p>
-<pre class="r"><code>ztestA &lt;- prop.test(x = c(5656, 5898), n = c(n, n), alternative = &quot;two.sided&quot;, correct=FALSE)
+<pre class="r"><code>ztestA &lt;- prop.test(x = c(nC, nT), n = c(n, n), alternative = &quot;two.sided&quot;, correct=FALSE)
 ztestA</code></pre>
 <pre><code>## 
 ##  2-sample test for equality of proportions without continuity
 ##  correction
 ## 
-## data:  c(5656, 5898) out of c(n, n)
-## X-squared = 17.789, df = 1, p-value = 0.00002468
+## data:  c(nC, nT) out of c(n, n)
+## X-squared = 0.066902, df = 1, p-value = 0.7959
 ## alternative hypothesis: two.sided
 ## 95 percent confidence interval:
-##  -0.04386626 -0.01604215
+##  -0.02414168  0.01851263
 ## sample estimates:
 ##    prop 1    prop 2 
-## 0.7000866 0.7300408</code></pre>
-<pre class="r"><code>sqrt(ztestA$statistic)</code></pre>
-<pre><code>## X-squared 
-##  4.217697</code></pre>
-<p>The X-squared test noted in the results here is a test of proportions that is equivalent to the z-test. You might also note that the numbers aren’t identical to what we manually calculated. There are many permutations of most statistical tests, and one of those is likely driving that mild difference. I haven’t taken the time to dig into the prop.test formula to understand exactly what is driving the difference here.</p>
+## 0.6977202 0.7005348</code></pre>
+<p>The X-squared test noted in the results here is a test of proportions that is equivalent to the z-test.</p>
+<p>Of note, here we have failed to reject the null despite the null being false. Given the effect size was less than predicted, the experiment was underpowered. In fact, the power of the experiment given the true effect size was as follows:</p>
+<pre class="r"><code>powerTrue = power.prop.test(n=n,p1=0.70,p2=0.72)
+powerTrue</code></pre>
+<pre><code>## 
+##      Two-sample comparison of proportions power calculation 
+## 
+##               n = 3553
+##              p1 = 0.7
+##              p2 = 0.72
+##       sig.level = 0.05
+##           power = 0.4592787
+##     alternative = two.sided
+## 
+## NOTE: n is number in *each* group</code></pre>
+<p>The power was only 46%.</p>
 </div>
 </div>
 <div id="scenario-b-a-comparison-of-means" class="section level2">
@@ -543,7 +570,7 @@ powerB</code></pre>
 <div id="analysing-your-data-1" class="section level3">
 <h3>Analysing your data</h3>
 <p>The only parameter from your power analysis that we now take into the experiment is the sample size.</p>
-<p>Let us suppose you have now run the experiment with 39245 people in each group. You find that in the control group the average income declared is $40,000, whereas the average income declared in the intervention group is $40,750. The sample standard deviation in both groups was $60,000. We now proceed to:</p>
+<p>Let us suppose you have now run the experiment with 39245 people in each group. We won’t simulate the data here, but will assume you find that in the control group the average income declared is $40,000, whereas the average income declared in the intervention group is $40,750. The sample standard deviation in both groups was $60,000. We now proceed to:</p>
 <ul>
 <li>Calculate the z-score</li>
 <li>Obtain the critical value</li>
