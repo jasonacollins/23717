@@ -1,0 +1,146 @@
+---
+title: "RCT stats run through"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=10)
+```
+
+This document gives two examples of the statistical processes used in a randomised controlled trial. These two examples comprise A) a test of proportions and B) a test involving a comparison of means for a continuous variable.
+
+## Scenario A: A test of proportions
+
+Suppose you are testing whether a reminder leads to an increase in tax returns being submitted on time. You design a randomised controlled trial where a treatment group receives a reminder, and a control group receives nothing. This is a binary outcome: people either pay their tax on time or they don't.
+
+### Power analysis
+
+Before running the experiment you do a power analysis to determine what sample size is required to achieve your requisite level of power. To calculate power, you need an estimated effect size. You review the literature on the topic and decide that a conservative estimate of the effect you are likely to achieve is 2 percentage points.
+
+You also need to know the variation in the population (i.e. a measure of the variance or standard deviation). For a test of proportions, that standard deviation can be calculated using the estimated proportion of those who will pay on time. We understand that around 70% of taxpayers pay on time.
+
+We want to determine what sample size will give us power of 0.8 with a significance level of 0.05. In R, the following formula gives us that answer. `p1` and `p2` effectively define the estimated base level of compliance and the predicted effect size. `n` as output below is the required sample size.
+
+```{r}
+powerA = power.prop.test(power=0.8,p1=0.70,p2=0.72)
+n = round (powerA$n, 0)
+powerA
+```
+
+You can see that the required sample size is `r n` people in each group to deliver 80% power, assuming our estimates of the proportion that will pay on time and the effect size are accurate.
+
+Let's suppose we were wanted 90% power. How much larger would we need our effect size to be?
+
+```{r}
+powerA90 = power.prop.test(power=0.9,p1=0.70,p2=0.72)
+powerA90
+```
+
+We would need a sample of `r round(powerA90$n, 0)` in each group.
+
+### Analysing your data
+
+The only parameter from your power analysis that we now take into the experiment is the sample size.
+
+Let us suppose you have now run the experiment with `r n` people in each group. You find that in the control group 5656 people pay on time (70%), whereas 5898 paid on time in the intervention group (73%). The mechanics of determining whether this is a significant result requires that we:
+
+-   Calculate the z-score
+-   Obtain the critical value
+-   Check whether we accept or reject the null hypothesis
+-   Derive the p-value
+
+First, we first calculate the z-score.
+
+```{r}
+x_1 = 5898/n
+x_0 = 5656/n
+zA = (x_1-x_0)/sqrt(x_1*(1-x_1)/n+x_0*(1-x_0)/n) 
+zA                      # test statistic 
+```
+The z-score is `r zA`
+
+We need to compare the z score to the critical value, which we can derive from the normal distribution using our chosen significance level of 0.05.
+
+```{r}
+alpha = .05
+zA.half.alpha = qnorm(1-alpha/2)
+zA.half.alpha
+```
+The critical value is 1.96.
+
+Our z-score is greater than the critical value, so we reject the null hypothesis that there is no effect of the prompt.
+
+```{r}
+pval = 2*pnorm(zA, lower.tail=FALSE)
+pval
+```
+The low p-value of `r pval` confirms this decision to reject.
+
+This can all be done for you by a single formula in R.
+
+```{r}
+ztestA <- prop.test(x = c(5656, 5898), n = c(n, n), alternative = "two.sided", correct=FALSE)
+ztestA
+sqrt(ztestA$statistic)
+```
+
+The X-squared test noted in the results here is a test of proportions that is equivalent to the z-test. You might also note that the numbers aren't identical to what we manually calculated. There are many permutations of most statistical tests, and one of those is likely driving that mild difference. I haven't taken the time to dig into the prop.test formula to understand exactly what is driving the difference here.
+
+## Scenario B: A comparison of means
+
+Suppose you are testing whether an honesty prompt increases the amount of income declared by taxpayers. You design a randomised controlled trial where a treatment group receives a prompt, and a control group receives nothing. This is a continuous outcome: people will pay a certain \$ amount of tax.
+
+### Power analysis
+
+Before running the experiment you do a power analysis to determine what sample size is required to achieve your requisite level of power. To do this, you need an estimated effect size. You review the literature on the topic and decide that the honesty prompt will result in people declaring \$1000 more income.
+
+We also need to know the variation in the population (i.e. a measure of the variance or standard deviation). We estimate from taxation statistics available to us that the population standard deviation of tax paid is \$50,000.
+
+We want to determine what sample size will give us power of 0.8 with a significance level of 0.05. In R, the following formula gives us that answer.
+
+```{r}
+powerB = power.t.test(d=1000/50000, power=0.8)
+nB = round(powerB$n, 0)
+powerB
+```
+You can see that the required sample size is `r nB` people in each group to deliver 80% power, assuming our estimates of the effect size and standard deviation are accurate.
+
+### Analysing your data
+
+The only parameter from your power analysis that we now take into the experiment is the sample size.
+
+Let us suppose you have now run the experiment with `r nB` people in each group. You find that in the control group the average income declared is \$40,000, whereas the average income declared in the intervention group is \$40,750. The sample standard deviation in both groups was \$60,000. We now proceed to:
+
+-   Calculate the z-score
+-   Obtain the critical value
+-   Check whether we accept or reject the null hypothesis
+-   Derive the p-value
+
+First, we first calculate the z-score.
+
+```{r}
+x = 750
+s = 60000
+se = s/sqrt(nB)
+zB = x/se 
+zB                      # test statistic 
+```
+The z-score is `r zB`.
+
+We need to compare the z-score to the critical value, which we can derive from the normal distribution using our chosen significance level of 0.05.
+
+```{r}
+alpha = .05
+zB.half.alpha = qnorm(1-alpha/2)
+zB.half.alpha
+```
+The critical value is `r zB.half.alpha`.
+
+Our z-score is greater than the critical value, so we reject the null hypothesis that there is no effect of the prompt.
+
+```{r}
+pval = 2*pnorm(zB, lower.tail=FALSE)
+pval
+```
+This can be confirmed when we calculate the p-value. The p-value is less than 0.05.
